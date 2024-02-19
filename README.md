@@ -1,4 +1,4 @@
-# Car Animation TreeJS
+# Car Animation ThreeJS
 
 ![screen1](./screen/giphy.gif)
 
@@ -9,7 +9,7 @@ An animation showing an ambulance driving through a forest using dynamic lightin
 ## Technologies
 
 - JavaScript
-- TreeJS
+- ThreeJS
 
 ## Setup
 
