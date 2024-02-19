@@ -16,4 +16,3 @@ Run the animation.html file using Visual Studio Live Server
 ## Preview
 
 ![screen1](./screen/giphy.gif)
-# Car-Amimation-TreeJS

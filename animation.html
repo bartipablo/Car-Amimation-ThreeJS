@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+
+ <html>
+     <head>
+         <title>Lab 02.01 - Ambient Light Testing</title>
+	  
+         <script src="three.js"></script>
+		 <script src="OrbitControls.js"></script>
+		 <script src="stats.js"></script>
+		 <script src="dat.gui.js"></script>
+ 
+     </head>
+     <body>
+	     <div id="Stats-output"> </div>
+         <!-- This is the DIV element which will contain the WebGL canvas. To be identifiable later on, the id 'WebGLCanvas' is applied to it. -->
+         <div id="WebGLCanvas"> </div>
+
+        <script>
+
+            var driveForward = true;
+
+            // -------------------CAR----------------------------
+            var carBody;
+
+            var carFront;
+
+            var carFrontLeftWheel;
+
+            var carFrontRightWheel;
+
+            var carRearLeftWheel;
+
+            var carRearRightWheel;
+
+            var carFrontLeftLight;
+
+            var carFrontRightLight;
+
+            var carRearLeftLight;
+
+            var carRearRightLight;
+
+            var emerygencyReflector;
+
+            // -------------------CAR----------------------------
+
+
+            // ------------------HOUSE--------------------------
+            var houseBody;
+
+            var houseRoof;
+            // ------------------HOUSE--------------------------
+
+
+            // ----------------LIGHTS---------------------------
+            var frontLight;
+
+            var frontLightTargetObject;
+
+            var emerygencyLight;
+
+            var emerygencyLightTargetObject;
+
+            var rearLight;
+
+            var rearLightTargetObject
+            // ----------------LIGHTS---------------------------
+
+
+        
+
+		     var stats = initStats();
+             // create a scene 
+             var scene = new THREE.Scene();
+
+             initCar();
+             initHouse();
+             initTree();
+             initFrontLights();
+             initEmerygencyLights();
+             initRearLight();
+             //initLightHelper();
+             initPlanes();
+             animate();
+
+			 
+			 // Global objects
+             var camera;
+			 var ctr;
+			 var controls;
+			 var renderer;
+			 var step = 0.0;
+			 
+		
+		     // Initialize the scene
+             initializeScene();
+		
+		     // Render the scene (map the 3D world to the 2D scene)
+             renderScene();
+		
+		     /**
+              * Initialize the scene.
+              */
+             function initializeScene(){
+                 
+                
+                // SKYBOX/FOG
+	            var materialArray = [];
+	            materialArray.push(new THREE.MeshBasicMaterial( { map: THREE.ImageUtils.loadTexture( 'textures/backgroundH.jpeg' ) }));
+	            materialArray.push(new THREE.MeshBasicMaterial( { map: THREE.ImageUtils.loadTexture( 'textures/backgroundH.jpeg' ) }));
+	            materialArray.push(new THREE.MeshBasicMaterial( { map: THREE.ImageUtils.loadTexture( 'textures/backgroundH.jpeg' ) }));
+	            materialArray.push(new THREE.MeshBasicMaterial( { map: THREE.ImageUtils.loadTexture( 'textures/backgroundH.jpeg' ) }));
+	            materialArray.push(new THREE.MeshBasicMaterial( { map: THREE.ImageUtils.loadTexture( 'textures/backgroundH.jpeg' ) }));
+	            materialArray.push(new THREE.MeshBasicMaterial( { map: THREE.ImageUtils.loadTexture( 'textures/backgroundH.jpeg' ) }));
+	            for (var i = 0; i < 6; i++)
+	                materialArray[i].side = THREE.BackSide;
+	            var skyboxMaterial = new THREE.MeshFaceMaterial( materialArray );
+	            var skyboxGeom = new THREE.BoxGeometry( 5000, 5000, 5000, 64, 64, 64 );
+	            var skybox = new THREE.Mesh( skyboxGeom, skyboxMaterial );
+	            scene.add( skybox );
+				 
+				
+                 renderer = new THREE.WebGLRenderer({antialias:true});
+                 // Set the background color of the renderer to black, with full opacity
+                 renderer.setClearColor(0x000000, 1);
+				  		 
+				 // Get the size of the inner window (content area) to create a full size renderer
+				 var canvasWidth = window.innerWidth;
+                 var canvasHeight = window.innerHeight;
+ 
+                 // Set the renderers size to the content areas size
+                 renderer.setSize(canvasWidth,canvasHeight );
+				 renderer.shadowMap.enabled = true;
+                
+		
+				 // Define camera and add it to the scene.
+                 camera = new THREE.PerspectiveCamera(45, canvasWidth / canvasHeight, 1, 20000);
+                 camera.position.set(-25, 30, 25);
+                 camera.lookAt(scene.position);
+				 scene.add(camera);
+				 
+				 //ctr = new THREE.OrbitControls( camera);
+				 //ctr.addEventListener( 'change', renderer.domElement);
+                 ctr = new THREE.OrbitControls( camera, renderer.domElement);
+                 				 
+				 const axesHelper = new THREE.AxesHelper( 5 );
+                 scene.add( axesHelper );
+				 
+				 // add subtle ambient lighting
+                 ambiColor = "#0a0a0a";
+                 ambientLight = new THREE.AmbientLight(ambiColor);
+                 scene.add(ambientLight);
+				 
+				 
+				 // add spotlight for the shadows
+                 spotLight = new THREE.SpotLight(0xffffff);
+                 spotLight.position.set(-40, 60, -10);
+                 spotLight.castShadow = true;
+		  
+				document.getElementById("WebGLCanvas").appendChild(renderer.domElement); 
+				 
+				/* var step = 0; */
+                
+                     controls = new function () {
+                     this.rotationSpeed = 0.02;
+                     this.bouncingSpeed = 0.03;
+                 };
+				 
+				 
+				 var gui = new dat.GUI();
+                 gui.add(controls, 'rotationSpeed', 0, 0.5);
+                 gui.add(controls, 'bouncingSpeed', 0, 0.5);
+        				                             
+        }
+
+     
+
+        function renderScene() {
+	
+            requestAnimationFrame(renderScene);
+            renderer.render(scene, camera);
+        }
+		
+		function initStats() {
+
+            var stats = new Stats();
+
+            stats.setMode(0); // 0: fps, 1: ms
+
+            // Align top-left
+            stats.domElement.style.position = 'absolute';
+            stats.domElement.style.left = '0px';
+            stats.domElement.style.top = '0px';
+
+            document.getElementById("Stats-output").appendChild(stats.domElement);
+
+            return stats;
+        }
+
+        function initPlanes() {
+            var planeGeometry = new THREE.PlaneGeometry(1.2, 1.2);
+            var planeMaterial = new THREE.MeshLambertMaterial({
+                color: 0x64C864, 
+                side: THREE.DoubleSide
+            });
+
+            for (let i = 0; i < 190; i++) {
+                for (let j = 0; j < 80; j++) {
+                    var plane = new THREE.Mesh(planeGeometry, planeMaterial);
+                    plane.receiveShadow = true;
+                    plane.rotation.x = -0.5 * Math.PI;
+                    plane.position.x = 15 - 65 + i*1.2
+                    plane.position.y = 0
+                    plane.position.z = -40 + j*1.2    
+                    scene.add(plane);
+                }
+            }
+            
+            var mainPlaneGeometry = new THREE.PlaneGeometry(400, 400);
+            var mainPlane = new THREE.Mesh(mainPlaneGeometry, planeMaterial);
+            mainPlane.rotation.x = -0.5 * Math.PI;
+            mainPlane.position.y = -1;
+            scene.add(mainPlane);
+        }
+
+        function initCar() {
+            var carGeometry = new THREE.BoxGeometry(10, 5, 6);
+            var carMaterial = new THREE.MeshLambertMaterial({ color: 0xffffff });
+            carBody = new THREE.Mesh(carGeometry, carMaterial);
+
+            var carFrontGeometry = new THREE.BoxGeometry(10, 2, 6);
+            var carFrontMaterial = new THREE.MeshLambertMaterial({ color: 0xffffff });
+            carFront = new THREE.Mesh(carFrontGeometry, carFrontMaterial);
+
+            var carLightGeometry = new THREE.BoxGeometry(0.15, 1, 1);
+            var carFrontLightMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
+            var carRearLightMaterial = new THREE.MeshBasicMaterial({ color: 0xFF0000 });
+            carFrontLeftLight = new THREE.Mesh(carLightGeometry, carFrontLightMaterial);
+            carFrontRightLight = new THREE.Mesh(carLightGeometry, carFrontLightMaterial);
+            carRearLeftLight = new THREE.Mesh(carLightGeometry, carRearLightMaterial);
+            carRearRightLight = new THREE.Mesh(carLightGeometry, carRearLightMaterial);
+
+
+            var wheelGeometry = new THREE.CylinderGeometry(1, 1, 1, 32);
+            var wheelMaterial = new THREE.MeshLambertMaterial({ color: 0x333333 }); 
+            carFrontLeftWheel  = new THREE.Mesh(wheelGeometry, wheelMaterial);
+            carFrontRightWheel = new THREE.Mesh(wheelGeometry, wheelMaterial);
+            carRearLeftWheel   = new THREE.Mesh(wheelGeometry, wheelMaterial);
+            carRearRightWheel  = new THREE.Mesh(wheelGeometry, wheelMaterial);
+
+            var emerygencyReflectorGeometry = new THREE.CylinderGeometry(0.5, 0.5, 2, 32);
+            var emerygencyReflectorMaterial = new THREE.MeshBasicMaterial({ 
+                color: 0x0f00ff, 
+            });
+            emerygencyReflector = new THREE.Mesh(emerygencyReflectorGeometry, emerygencyReflectorMaterial);
+
+
+            // Position the car
+            carBody.position.x = -40;
+            carBody.position.y = 3.5;
+            carBody.position.z = 0;
+
+            carFront.position.x = -35;
+            carFront.position.y = 2;
+            carFront.position.z = 0;
+
+            carFrontLeftWheel.rotation.x = Math.PI / 2; 
+            carFrontLeftWheel.position.x = -32;
+            carFrontLeftWheel.position.y = 1;
+            carFrontLeftWheel.position.z = -2.5;
+
+            carFrontRightWheel.rotation.x = Math.PI / 2; 
+            carFrontRightWheel.position.x = -32;
+            carFrontRightWheel.position.y = 1;
+            carFrontRightWheel.position.z = 2.5;
+
+            carRearLeftWheel.rotation.x = Math.PI / 2; 
+            carRearLeftWheel.position.x = -43;
+            carRearLeftWheel.position.y = 1;
+            carRearLeftWheel.position.z = -2.5;
+
+            carRearRightWheel.rotation.x = Math.PI / 2; 
+            carRearRightWheel.position.x = -43;
+            carRearRightWheel.position.y = 1;
+            carRearRightWheel.position.z = 2.5;
+
+            carFrontLeftLight.position.x = -30;
+            carFrontLeftLight.position.y = 2;
+            carFrontLeftLight.position.z = -1.5;
+
+            carFrontRightLight.position.x = -30;
+            carFrontRightLight.position.y = 2;
+            carFrontRightLight.position.z = 1.5;
+
+            carRearLeftLight.position.x = -45;
+            carRearLeftLight.position.y = 2;
+            carRearLeftLight.position.z = -1.5;
+
+            carRearRightLight.position.x = -45;
+            carRearRightLight.position.y = 2;
+            carRearRightLight.position.z = 1.5;
+
+            emerygencyReflector.position.x = -37;
+            emerygencyReflector.position.y = 6;
+
+
+
+            // Enable shadow casting for each relevant object
+            carBody.castShadow = true;
+            carFront.castShadow = true;
+            carFrontLeftWheel.castShadow = true;
+            carFrontRightWheel.castShadow = true;
+            carRearLeftWheel.castShadow = true;
+            carRearRightWheel.castShadow = true;
+
+
+
+            // Add the car to the scene
+            scene.add(carBody);
+            scene.add(carFront);
+            scene.add(carFrontLeftWheel);
+            scene.add(carFrontRightWheel);
+            scene.add(carRearLeftWheel);
+            scene.add(carRearRightWheel);
+            scene.add(carFrontLeftLight);
+            scene.add(carFrontRightLight);
+            scene.add(carRearLeftLight);
+            scene.add(carRearRightLight);
+            scene.add(emerygencyReflector);
+
+        }
+
+
+        function createTree(xPosition, zPosition) {
+            var rootTreeGeometry = new THREE.CylinderGeometry(1.5, 1.5, 3, 32);
+            var rootTreeMaterial = new THREE.MeshLambertMaterial({ 
+                color: 0x8B4513, 
+            });
+            var treeLeavesGeometry = new THREE.ConeGeometry(5, 17, 6);
+            var treeLeavesMaterial = new THREE.MeshLambertMaterial({ 
+                color: 0x64C880, 
+            });
+
+            treeRoot = new THREE.Mesh(rootTreeGeometry, rootTreeMaterial);
+            treeRoot.position.x = xPosition;
+            treeRoot.position.y = 1.5;
+            treeRoot.position.z = zPosition;
+            treeRoot.castShadow = true;
+
+            treeLeaves = new THREE.Mesh(treeLeavesGeometry, treeLeavesMaterial);
+            treeLeaves.position.x = xPosition;
+            treeLeaves.position.y = 11;
+            treeLeaves.position.z = zPosition;
+            treeLeaves.castShadow = true;
+
+            scene.add(treeRoot);
+            scene.add(treeLeaves);
+
+        }
+
+        function initTree() {
+
+            createTree(15, 20);
+            createTree(-15, 17);
+            createTree(30, -17);
+            createTree(55, -9);
+            createTree(-30, -13);
+            createTree(0, -17);
+            createTree(14, -25);
+
+            for (let j = 0; j < 7; j++) {
+                for (let i=1; i < 4; i++) {
+                    if (i % 2 == 0)
+                        createTree(j*40 - 200, i*25);
+                    else 
+                        createTree(j*40 + 20 - 200, i*29);
+                }
+                
+            }
+
+            for (let j = 0; j < 7; j++) {
+                for (let i=1; i < 4; i++) {
+                    if (i % 2 == 0)
+                        createTree(j*40 - 200, -i*25);
+                    else 
+                        createTree(j*40 + 20 - 200, -i*29);
+                }
+                
+            }
+
+
+        }
+
+        function initHouse() {
+            //houseBody
+            var boxGeometry = new THREE.BoxGeometry(15, 10, 15);  
+
+            var boxMaterial = new THREE.MeshLambertMaterial({
+                color: 0xffff00, 
+            });
+            houseBody = new THREE.Mesh(boxGeometry, boxMaterial);
+            houseBody.position.set(60, 5, 15);
+            houseBody.rotation.y = 1; 
+            houseBody.castShadow = true;
+            houseBody.receiveShadow = true;
+
+            //roof
+            var roofGeometry = new THREE.ConeGeometry(13, 5, 4);
+            var roofMaterial = new THREE.MeshLambertMaterial({ 
+                color: 0xff4500,
+            });
+            houseRoof = new THREE.Mesh(roofGeometry, roofMaterial);
+            houseRoof.position.set(60, 12.5, 15)
+            houseRoof.rotation.y = 0.25; 
+            houseRoof.castShadow = true;
+
+            scene.add(houseBody);
+            scene.add(houseRoof);    
+        }
+
+        function initFrontLights() {
+            frontLightTargetObject = new THREE.Object3D(); 
+            frontLightTargetObject.position.x = 80;
+            frontLightTargetObject.position.y = 0;
+            scene.add(frontLightTargetObject);
+
+
+            scene.add(frontLightTargetObject);
+
+            frontLight = new THREE.SpotLight(0xffffff);
+            frontLight.position.set(-32, 5, 0);
+            frontLight.castShadow = true;
+
+            frontLight.intensity = 1.5; 
+            frontLight.angle = Math.PI / 7
+
+            frontLight.target = frontLightTargetObject;
+
+            scene.add(frontLight);
+        }
+
+        function initEmerygencyLights() {
+            emerygencyLightTargetObject = new THREE.Object3D(); 
+            emerygencyLightTargetObject.position.x = -80;
+            emerygencyLightTargetObject.position.y = -3;
+            scene.add(emerygencyLightTargetObject);
+
+            emerygencyLight = new THREE.SpotLight(0x0f00ff); 
+            emerygencyLight.position.set(-37, 10, 0);
+            emerygencyLight.castShadow = true;
+            emerygencyLight.distance = 50; 
+            emerygencyLight.intensity = 2; 
+            emerygencyLight.angle = Math.PI / 3.3
+
+            emerygencyLight.target = emerygencyLightTargetObject;
+
+            scene.add(emerygencyLight);           
+        }
+
+        function initRearLight() {
+            rearLight = new THREE.PointLight( 0xff0000, 0.5, 100 );
+            rearLight.position.set( -48, 2.2, 0 );
+            scene.add( rearLight );
+
+            var sphereGeometry = new THREE.SphereGeometry(1, 32, 32);
+            var sphereMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+            rearLightTargetObject = new THREE.Mesh(sphereGeometry, sphereMaterial);
+            rearLightTargetObject.position.copy(rearLight.position);
+        }
+
+
+        function initLightHelper() {
+            var frontLighthelper = new THREE.CameraHelper( frontLight.shadow.camera );
+            var rearLighthelper = new THREE.CameraHelper( emerygencyLight.shadow.camera );
+            scene.add( frontLighthelper );
+            scene.add( rearLighthelper );
+
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            updateCarPosition();
+
+
+        }
+
+        function updateCarPosition() {
+            var speed;
+
+            if (driveForward && frontLight.position.x > 40) {
+                driveForward = false;
+            } else if (!driveForward && rearLight.position.x < -40) {
+                driveForward = true;
+            }
+
+            if (driveForward) {
+                speed = 0.1;
+            } else {
+                speed = -0.1;
+            }
+
+            carBody.position.x += speed; 
+            carFront.position.x += speed;
+            carFrontLeftWheel.position.x += speed;
+            carFrontRightWheel.position.x += speed;
+            carRearLeftWheel.position.x += speed;
+            carRearRightWheel.position.x += speed;
+            carFrontLeftLight.position.x += speed;
+            carFrontRightLight.position.x += speed;
+            carRearLeftLight.position.x += speed;
+            carRearRightLight.position.x += speed;
+            emerygencyReflector.position.x += speed;
+
+            //LIGHTS
+            frontLight.position.x += speed; 
+            frontLightTargetObject.position.x += speed;
+            emerygencyLight.position.x += speed;
+            emerygencyLightTargetObject.position.x += speed; 
+            rearLight.position.x += speed; 
+            
+
+  
+            var radius = 500; 
+            var speed = 0.004; 
+
+            var time = Date.now() * speed;
+
+            var x = radius * Math.cos(time);
+            var z = radius * Math.sin(time);
+
+            emerygencyLightTargetObject.position.set(x, 0, z);
+            
+            
+}
+
+      </script>
+   </body>
+</html>
