@@ -8,8 +8,8 @@ An animation showing an ambulance driving through a forest using dynamic lightin
 
 ## Technologies
 
--JavaScript
--TreeJS
+- JavaScript
+- TreeJS
 
 ## Setup
 
