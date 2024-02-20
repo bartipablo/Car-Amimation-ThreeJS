@@ -1,7 +1,7 @@
 # Car Animation ThreeJS
 
 ## Preview
-
+(gif)
 ![screen1](./screen/giphy.gif)
 
 ## Description
